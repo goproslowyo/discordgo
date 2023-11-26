@@ -284,7 +284,9 @@ func (s *Session) heartbeat(wsConn *websocket.Conn, listening <-chan interface{}
 	}
 
 	var err error
-	ticker := time.NewTicker(heartbeatIntervalMsec * time.Millisecond)
+	// Locking might introduce a delay, which may not be covered by the heartbeat interval.
+	// Experimental fix, might reduce the number of Op: 7 messages we receive.
+	ticker := time.NewTicker(heartbeatIntervalMsec * time.Millisecond - (1000 * time.Millisecond))
 	defer ticker.Stop()
 
 	for {
