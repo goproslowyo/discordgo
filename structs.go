@@ -656,6 +656,13 @@ type Sticker struct {
 	SortValue   int           `json:"sort_value"`
 }
 
+// StickerItem represents the smallest amount of data required to render a sticker. A partial sticker object.
+type StickerItem struct {
+	ID         string        `json:"id"`
+	Name       string        `json:"name"`
+	FormatType StickerFormat `json:"format_type"`
+}
+
 // StickerPack represents a pack of standard stickers.
 type StickerPack struct {
 	ID             string     `json:"id"`
@@ -1074,6 +1081,109 @@ type GuildScheduledEventUser struct {
 	Member                *Member `json:"member"`
 }
 
+// GuildOnboardingMode defines the criteria used to satisfy constraints that are required for enabling onboarding.
+// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-onboarding-mode
+type GuildOnboardingMode int
+
+// Block containing known GuildOnboardingMode values.
+const (
+	// GuildOnboardingModeDefault counts default channels towards constraints.
+	GuildOnboardingModeDefault GuildOnboardingMode = 0
+	// GuildOnboardingModeAdvanced counts default channels and questions towards constraints.
+	GuildOnboardingModeAdvanced GuildOnboardingMode = 1
+)
+
+// GuildOnboarding represents the onboarding flow for a guild.
+// https://discord.com/developers/docs/resources/guild#guild-onboarding-object
+type GuildOnboarding struct {
+	// ID of the guild this onboarding flow is part of.
+	GuildID string `json:"guild_id,omitempty"`
+
+	// Prompts shown during onboarding and in the customize community (Channels & Roles) tab.
+	Prompts *[]GuildOnboardingPrompt `json:"prompts,omitempty"`
+
+	// Channel IDs that members get opted into automatically.
+	DefaultChannelIDs []string `json:"default_channel_ids,omitempty"`
+
+	// Whether onboarding is enabled in the guild.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Mode of onboarding.
+	Mode *GuildOnboardingMode `json:"mode,omitempty"`
+}
+
+// GuildOnboardingPromptType is the type of an onboarding prompt.
+// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-prompt-types
+type GuildOnboardingPromptType int
+
+// Block containing known GuildOnboardingPromptType values.
+const (
+	GuildOnboardingPromptTypeMultipleChoice GuildOnboardingPromptType = 0
+	GuildOnboardingPromptTypeDropdown       GuildOnboardingPromptType = 1
+)
+
+// GuildOnboardingPrompt is a prompt shown during onboarding and in the customize community (Channels & Roles) tab.
+// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-onboarding-prompt-structure
+type GuildOnboardingPrompt struct {
+	// ID of the prompt.
+	// NOTE: always requires to be a valid snowflake (e.g. "0"), see
+	// https://github.com/discord/discord-api-docs/issues/6320 for more information.
+	ID string `json:"id,omitempty"`
+
+	// Type of the prompt.
+	Type GuildOnboardingPromptType `json:"type"`
+
+	// Options available within the prompt.
+	Options []GuildOnboardingPromptOption `json:"options"`
+
+	// Title of the prompt.
+	Title string `json:"title"`
+
+	// Indicates whether users are limited to selecting one option for the prompt.
+	SingleSelect bool `json:"single_select"`
+
+	// Indicates whether the prompt is required before a user completes the onboarding flow.
+	Required bool `json:"required"`
+
+	// Indicates whether the prompt is present in the onboarding flow.
+	// If false, the prompt will only appear in the customize community (Channels & Roles) tab.
+	InOnboarding bool `json:"in_onboarding"`
+}
+
+// GuildOnboardingPromptOption is an option available within an onboarding prompt.
+// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-prompt-option-structure
+type GuildOnboardingPromptOption struct {
+	// ID of the prompt option.
+	ID string `json:"id,omitempty"`
+
+	// IDs for channels a member is added to when the option is selected.
+	ChannelIDs []string `json:"channel_ids"`
+
+	// IDs for roles assigned to a member when the option is selected.
+	RoleIDs []string `json:"role_ids"`
+
+	// Emoji of the option.
+	// NOTE: when creating or updating a prompt option
+	// EmojiID, EmojiName and EmojiAnimated should be used instead.
+	Emoji *Emoji `json:"emoji,omitempty"`
+
+	// Title of the option.
+	Title string `json:"title"`
+
+	// Description of the option.
+	Description string `json:"description"`
+
+	// ID of the option's emoji.
+	// NOTE: only used when creating or updating a prompt option.
+	EmojiID string `json:"emoji_id,omitempty"`
+	// Name of the option's emoji.
+	// NOTE: only used when creating or updating a prompt option.
+	EmojiName string `json:"emoji_name,omitempty"`
+	// Whether the option's emoji is animated.
+	// NOTE: only used when creating or updating a prompt option.
+	EmojiAnimated *bool `json:"emoji_animated,omitempty"`
+}
+
 // A GuildTemplate represents a replicable template for guild creation
 type GuildTemplate struct {
 	// The unique code for the guild template
@@ -1164,6 +1274,14 @@ type UserGuild struct {
 	Owner       bool           `json:"owner"`
 	Permissions int64          `json:"permissions,string"`
 	Features    []GuildFeature `json:"features"`
+
+	// Approximate number of members in this guild.
+	// NOTE: this field is only filled when withCounts is true.
+	ApproximateMemberCount int `json:"approximate_member_count"`
+
+	// Approximate number of non-offline members in this guild.
+	// NOTE: this field is only filled when withCounts is true.
+	ApproximatePresenceCount int `json:"approximate_presence_count"`
 }
 
 // GuildFeature indicates the presence of a feature in a guild
@@ -1246,11 +1364,49 @@ type Role struct {
 	// This is a combination of bit masks; the presence of a certain permission can
 	// be checked by performing a bitwise AND between this int and the permission.
 	Permissions int64 `json:"permissions,string"`
+
+	// The hash of the role icon. Use Role.IconURL to retrieve the icon's URL.
+	Icon string `json:"icon"`
+
+	// The emoji assigned to this role.
+	UnicodeEmoji string `json:"unicode_emoji"`
+
+	// The flags of the role, which describe its extra features.
+	// This is a combination of bit masks; the presence of a certain flag can
+	// be checked by performing a bitwise AND between this int and the flag.
+	Flags RoleFlags `json:"flags"`
 }
+
+// RoleFlags represent the flags of a Role.
+// https://discord.com/developers/docs/topics/permissions#role-object-role-flags
+type RoleFlags int
+
+// Block containing known RoleFlags values.
+const (
+	// RoleFlagInPrompt indicates whether the Role is selectable by members in an onboarding prompt.
+	RoleFlagInPrompt RoleFlags = 1 << 0
+)
 
 // Mention returns a string which mentions the role
 func (r *Role) Mention() string {
 	return fmt.Sprintf("<@&%s>", r.ID)
+}
+
+// IconURL returns the URL of the role's icon.
+//
+//	size:    The size of the desired role icon as a power of two
+//	         Image size can be any power of two between 16 and 4096.
+func (r *Role) IconURL(size string) string {
+	if r.Icon == "" {
+		return ""
+	}
+
+	URL := EndpointRoleIcon(r.ID, r.Icon)
+
+	if size != "" {
+		return URL + "?size=" + size
+	}
+	return URL
 }
 
 // RoleParams represents the parameters needed to create or update a Role
@@ -1265,6 +1421,12 @@ type RoleParams struct {
 	Permissions *int64 `json:"permissions,omitempty,string"`
 	// Whether this role is mentionable
 	Mentionable *bool `json:"mentionable,omitempty"`
+	// The role's unicode emoji.
+	// NOTE: can only be set if the guild has the ROLE_ICONS feature.
+	UnicodeEmoji *string `json:"unicode_emoji,omitempty"`
+	// The role's icon image encoded in base64.
+	// NOTE: can only be set if the guild has the ROLE_ICONS feature.
+	Icon *string `json:"icon,omitempty"`
 }
 
 // Roles are a collection of Role
@@ -1337,6 +1499,22 @@ type Assets struct {
 	SmallText    string `json:"small_text,omitempty"`
 }
 
+// MemberFlags represent flags of a guild member.
+// https://discord.com/developers/docs/resources/guild#guild-member-object-guild-member-flags
+type MemberFlags int
+
+// Block containing known MemberFlags values.
+const (
+	// MemberFlagDidRejoin indicates whether the Member has left and rejoined the guild.
+	MemberFlagDidRejoin MemberFlags = 1 << 0
+	// MemberFlagCompletedOnboarding indicates whether the Member has completed onboarding.
+	MemberFlagCompletedOnboarding MemberFlags = 1 << 1
+	// MemberFlagBypassesVerification indicates whether the Member is exempt from guild verification requirements.
+	MemberFlagBypassesVerification MemberFlags = 1 << 2
+	// MemberFlagStartedOnboarding indicates whether the Member has started onboarding.
+	MemberFlagStartedOnboarding MemberFlags = 1 << 3
+)
+
 // A Member stores user information for Guild members. A guild
 // member represents a certain user's presence in a guild.
 type Member struct {
@@ -1367,6 +1545,10 @@ type Member struct {
 	// When the user used their Nitro boost on the server
 	PremiumSince *time.Time `json:"premium_since"`
 
+	// The flags of this member. This is a combination of bit masks; the presence of a certain
+	// flag can be checked by performing a bitwise AND between this int and the flag.
+	Flags MemberFlags `json:"flags"`
+
 	// Is true while the member hasn't accepted the membership screen.
 	Pending bool `json:"pending"`
 
@@ -1396,6 +1578,15 @@ func (m *Member) AvatarURL(size string) string {
 	return avatarURL(m.Avatar, "", EndpointGuildMemberAvatar(m.GuildID, m.User.ID, m.Avatar),
 		EndpointGuildMemberAvatarAnimated(m.GuildID, m.User.ID, m.Avatar), size)
 
+}
+
+// DisplayName returns the member's guild nickname if they have one,
+// otherwise it returns their discord display name.
+func (m *Member) DisplayName() string {
+	if m.Nick != "" {
+		return m.Nick
+	}
+	return m.User.GlobalName
 }
 
 // ClientStatus stores the online, offline, idle, or dnd status of each device of a Guild member.
@@ -2362,6 +2553,9 @@ const (
 
 	ErrCodeCannotUpdateAFinishedEvent             = 180000
 	ErrCodeFailedToCreateStageNeededForStageEvent = 180002
+
+	ErrCodeCannotEnableOnboardingRequirementsAreNotMet  = 350000
+	ErrCodeCannotUpdateOnboardingWhileBelowRequirements = 350001
 )
 
 // Intent is the type of a Gateway Intent
